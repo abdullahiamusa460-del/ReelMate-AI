@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: reelmate-postgres
+    environment:
+      POSTGRES_USER: reelmate
+      POSTGRES_PASSWORD: reelmate
+      POSTGRES_DB: reelmate
+    ports:
+      - "5432:5432"
+    volumes:
+      - reelmate_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reelmate -d reelmate"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    container_name: reelmate-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://reelmate:reelmate@postgres:5432/reelmate
+    volumes:
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+
+volumes:
+  reelmate_pgdata:
